@@ -1,0 +1,70 @@
+\documentclass[a4paper,10pt]{report}
+\pagestyle{headings}
+
+\title{\textsc{\textbf{Introduzione alla shell}}}
+
+\author{Ciro Mattia Gonano <ciro@winged.it>}
+
+\date{}
+
+\usepackage[italian]{babel}
+\usepackage[T1]{fontenc}
+\frenchspacing
+%\usepackage{longtable}
+
+\begin{document}
+
+\maketitle
+
+\section{Disclaimer}
+
+Copyright (c) 2003-2006 Ciro Mattia Gonano.
+Permission is granted to copy, distribute and/or modify this document under
+the terms of the GNU Free Documentation License, Version 1.2 or any later
+version published by the Free Software Foundation; with no Invariant Sections,
+no Front-Cover Texts, and no Back-Cover Texts.
+
+A copy of the license is included in the section entitled "GNU Free
+Documentation License".
+
+\medskip
+Vi sarei grato se riportaste qualsiasi errore, imprecisione, difficolt\`a
+trovaste nel testo. Contribuirete all'evoluzione della presente guida, e molta
+altra gente ve ne sar\`a grata ;-)
+
+\section{Ringraziamenti}
+La prima stesura del presente documento \`e avvenuta prendendo spunto per la
+sua quasi totale integrit\`a dai lucidi del corso di ``Laboratorio di Sistemi
+Operativi'' del professor \textbf{Alberto Montresor}.
+
+\section{Nota alla presente versione}
+
+Questa versione (generata in data \date) non ha subito cambiamenti da due anni.
+
+Questo implica che, come in ogni cosa che riguardi l'informatica, diverse cose
+potrebbero essere cambiate o migliorate; inoltre la presente guida \`e tutto
+fuorch\'e finita.
+
+Ho deciso di pubblicarla unicamente per dare un ``la'' a chi fosse interessato
+ad approfondire l'utilizzo della shell, ed eventualmente come spunto per chi
+volesse contribuire ad ampliare e completare la guida stessa.
+
+Ovviamente i sorgenti sono disponibili su richiesta.
+
+\tableofcontents
+
+% Chapter 1: Introduzione e note tipografiche
+\input{1_intro.tex}
+
+% Chapter 2: Nozioni di base
+\input{2_base.tex}
+
+% Chapter 3: Programmazione della shell
+\input{3_script.tex}
+
+\appendix
+% Appendix 1: GNU Free Documentation License
+\input{A1_gnufdl.tex}
+
+\end{document}
+

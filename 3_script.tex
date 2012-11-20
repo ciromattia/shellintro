@@ -1,0 +1,387 @@
+\chapter{Programmazione della shell}
+
+\section{Valutazione delle espressioni}
+La shell non supporta direttamente (come faceva, per chi lo ricorda, il caro vecchio
+\textbf{C$=$64}, avendo il \emph{BASIC} integrato) la valutazione delle
+espressioni; a questo supplisce il comando \texttt{expr \textit{espressione}},
+che ci ritorna il risultato della formula introdotta. Tutti i componenti
+dell'espressione devono essere necessariamente separati da spazi tra di loro,
+e tutti i metacaratteri devono essere ovviamente "escaped"\footnote{come
+dicevamo prima, apponendo una \textit{backslash} ($\backslash$) al carattere
+(ad esempio: $\backslash$*)}, altrimenti la shell li espander\`a secondo il
+loro metasignificato.
+
+Il risultato pu\`o essere numerico o una stringa, e pu\`o venire assegnato ad
+una variabile con un uso opportuno del \emph{command substitution}.
+
+Gli operatori disponibili sono:
+\begin{itemize}
+	\item Aritmetici:\texttt{\ \ \ \ + - * / \%}
+	\item Confronto:\texttt{\ \ \ \ = != > < >= <=}
+	\item Logici:\texttt{\ \ \ \ \ \ \ \ \& | !}
+	\item Parentesi\footnote{devono essere prefissate dalla
+	\emph{backslash}}: \texttt{\ \ \ ( )}
+	\item Stringhe:
+	\begin{itemize}
+		\item \texttt{match \textit{string regexp}}
+		\item \texttt{substr \textit{string start length}}
+		\item \texttt{length \textit{string}}
+		\item \texttt{index \textit{string charList}}
+	\end{itemize}
+\end{itemize}
+
+\section{Exit status}
+Ogni comando lanciato dalla shell ritorna un \emph{exit status}. Per
+convenzione UNIX, un \emph{exit status} pari a 0 indica ``uscita con
+successo'' (pari al valore \texttt{TRUE} nella valutazione delle espressioni
+booleane), mentre un valore diverso indica ``uscita (spesso prematura) con
+fallimento''. L'\emph{exit status} torna molto utile negli script per
+controllare il flusso dell'esecuzione dei comandi, modificandolo in base ai
+risutlati d'uscita prodotti. Proprio per questo, la shell ci offre il comando
+\texttt{exit \textit{nn}} per far terminare il nostro script con \emph{exit
+status} pari a \textit{nn}, e la variabile \emph{built-in} \texttt{\$?}, che
+contiene l'\emph{exit status} dell'ultimo comando eseguito:
+\begin{verbatim}
+$ cat script.sh
+#!/bin/bash
+echo hello
+echo $?     # "echo hello" ha tornato exit status 0 (successo)
+lskdf       # comando inesistente
+echo $?     # "lskdf" torna exit status diverso da 0 (fallimento)
+exit 113    # il nostro script esce tornando exit status
+            # 113 (attenzione: viene considerato fallimento!)
+$ chmod 755 script.sh
+$ ./script.sh
+hello
+0
+./script.sh: lskdf: command not found
+127
+\end{verbatim}
+
+\section{Strutture di controllo}
+Come dicevamo prima, gli \emph{exit status} vengono utilizzati per le
+espressioni condizionali che governano il programma:
+\begin{verbatim}
+if cmp a b > /dev/null   # ridirigiamo l'output su /dev/null
+then echo "I file a e b sono identici."
+else echo "I file a e b sono diversi."
+fi
+\end{verbatim}
+
+Le condizioni sono prevalentemente controllate con il comando \texttt{test
+\textit{expression}}, che torna 0 se l'espressione \`e vera, 1 altrimenti.
+Molti sono gli argomenti di confronto che pu\`o accettare \texttt{test}, e
+sarebbe inutile elencarli qui, quindi vi rimando alla manpage \textbf{test(1)}.
+\`E utile comunque ricordare che gli operatori di confronto sono diversi per
+interi e stringhe, e che esistono operatori di test per file e directory (ad
+esempio, per sapere se un file esiste ed e` eseguibile).
+
+La shell offre il comando built-in \verb_[ ]_ e le keyword
+\verb_[[ ]]_ per valutare la condizione (usando il valore di
+ritorno di \texttt{test}) al loro interno. La differenza tra i
+due sta nel fatto che all'interno di \verb_[[ ]]_ non viene
+effettuato filename expansion, inoltre operatori come \&\&, ||,
+> e < vengono interpretati correttamente.
+
+Ad esempio, per controllare l'esistenza di un argomento:
+\begin{verbatim}
+if [ -n "$1" ]
+then
+  lines=$1
+fi
+\end{verbatim}
+
+Questo esempio ci introduce il cosiddetto \textit{blocco condizionale},
+comunemente chiamato \textit{blocco if}.
+Un blocco condizionale permette di eseguire comandi condizionati, ovvero di
+scegliere, a seconda che una condizione sia vera o falsa, una lista di comandi
+piuttosto che un'altra. La struttura di un blocco condizionale \`e la
+seguente:
+\begin{verbatim}
+if list1
+then
+         list2
+elif list3
+then
+         list4
+else
+         list5
+fi
+\end{verbatim}
+
+Nel listato sopra, vengono innanzitutto eseguiti i comandi di \texttt{list1},
+e se l'exit status dell'ultimo comando della lista \`e \texttt{0} (successo),
+il blocco passa ad eseguire i comandi in \texttt{list2} e quindi esce; in
+caso negativo (ovvero \texttt{list1} fallisce), vengono eseguiti i comandi in
+\texttt{list3}, e ancora come prima, se la lista esce con successo vengono
+eseguiti \texttt{list4} e quindi il blocco esce, altrimenti vengono eseguiti i
+comandi in \texttt{list5}.
+
+\`E importante notare che un blocco if pu\`o contenere zero o pi\`u sezioni
+\texttt{elif}, e che la sezione \texttt{else} \`e sempre opzionale.
+
+Un esempio un po' pi\`u lungo per capire meglio il funzionamento:
+\begin{verbatim}
+#!/bin/bash
+stop=0
+while [[ $stop -eq 0 ]]
+do
+        cat << ENDOFMENU
+        1: sysadmin
+        2: user
+        3: guest
+ENDOFMENU
+echo "Your choice?"
+read ch
+if [[ "$ch" = "1" ]]; then
+        sysadmin
+elif [[ "$ch" = "2" ]]; then
+        user
+elif [[ "$ch" = "3" ]]; then
+        guest
+else
+        echo error
+fi
+\end{verbatim}
+
+\medskip
+Per evitare molteplici utilizzi di \texttt{elif}, che possono risultare
+scomodi e rendere meno leggibile il codice, un'altra struttura di controllo
+\`e disponibile: il cosiddetto \texttt{case - in - esac}. La struttura \`e la
+seguente:
+\begin{verbatim}
+case expression in
+        value1)
+                list1
+                ;;
+        value2)
+                list2
+                ;;
+esac
+\end{verbatim}
+\texttt{expression} viene valutata, e il suo risultato viene confrontato con i
+vari \texttt{value}, dal primo all'ultimo; quando il primo \texttt{value} che
+corrisponde al risultato viene trovato, si esegue la \texttt{list}
+corrispondente, e finita la sequenza di comandi si salta al \texttt{esac} del
+blocco. \`E importante notare che i \texttt{value} possono contenere
+wildcards, quindi mettere ad esempio \texttt{*$)$} come ultimo value ha senso
+per prendere tutti i risultati che non rispecchiano i valori specificati
+sopra.
+Ad esempio:
+\begin{verbatim}
+#!/bin/bash
+# Stampa gli utenti che consumano piu` spazio su HD
+case "$1" in
+  "")
+    lines=50
+    ;;
+  *[!0-9]*)
+    echo "Usage: `basename $0` usersnum";
+    exit 1
+    ;;
+  *)
+    lines=$1
+    ;;
+esac
+du -s /home/* | sort -gr | head -$lines
+\end{verbatim}
+
+\medskip
+Per ripetere pi\`u volte una lista di comandi finch\'e una data condizione non
+sia vera, la shell ci mette a disposizione tre tipi di comandi:
+\begin{itemize}
+	\item \texttt{while - do - done}
+	\item \texttt{until - do - done}
+	\item \texttt{for - in - do - done}
+\end{itemize}
+Le strutture sono cos\`\i definite:
+\begin{verbatim}
+while list1
+do
+        list2
+done
+
+until list1
+do
+        list2
+done
+\end{verbatim}
+per while e until, molto simili fra loro: nel while, \texttt{list1} viene
+eseguita, e se l'ultimo comando esce con successo viene eseguita
+\texttt{list2}, e si ritorna quindi all'inizio del ciclo con una nuova
+esecuzione di \texttt{list1}, finch\'e quest'ultima non esce con status
+fallimentare. Nell'until funziona alla stessa maniera, salvo il fatto che il
+ciclo viene ripetuto finch\'e \texttt{list1} \`e falsa, e quando invece esce
+con successo, il ciclo termina.
+
+A questi due cicli si applicano due istruzioni: \texttt{break}, che causa
+l'immediata uscita dal ciclo, e \texttt{continue}, che riporta immediatamente
+il ciclo all'inizio.
+
+Ad esempio, possiamo utilizzare un ciclo until e un while per stampare le
+tabelline...
+\begin{verbatim}
+#!/bin/bash
+if [ "$1" -eq "" ]; then
+  echo "Usage: `basename $0` max"
+  exit
+fi
+x=1
+until [ $1 -gt $x ]
+do
+  y=1
+  while [ $y -le $1 ]
+  do
+    echo `expr $x \* $y` ""
+    y=`expr $y + 1`
+  done
+  echo
+  x=`expr $x + 1`
+done
+\end{verbatim}
+
+Il ciclo for, invece, ha la seguente struttura:
+\begin{verbatim}
+for name in words
+do
+        list
+done
+\end{verbatim}
+
+Ciascuna parola nella lista \texttt{words} viene caricata nella variabile
+\texttt{name} ad ogni iterazione del ciclo, e quindi viene eseguita
+\texttt{list}. Se la clausola \texttt{in} viene omessa, al suo posto viene
+utilizzata la variabile \texttt{\$*}.
+Ancora un esempio:
+\begin{verbatim}
+#!/bin/bash
+for color in red yellow blue green
+do
+  echo One color is $color
+done
+\end{verbatim}
+
+\section{Comandi built-in}
+\subsection{I/O}
+\subsubsection*{\texttt{echo}}
+Stampa i suoi argomenti su \texttt{stdout}. L'opzione \texttt{-n} viene
+utilizzata per evitare che la stampa includa il newline finale. Utilizzato con
+command substitution, pu\`o servire per settare una variabile:
+\begin{verbatim}
+a=`echo "HELLO" | tr A-Z a-z`
+\end{verbatim}
+Per abilitare l'interpretazione delle sequenze di escape, si specifica
+l'opzione \texttt{-e}.
+
+\subsubsection*{\texttt{printf}}
+Versione migliorata di \texttt{echo}, la sintassi \`e \emph{simile} a quella
+della funzione C \texttt{printf(3)}. L'interpretazione delle sequenze di
+escape \`e abilitata di default.
+
+\subsubsection*{\texttt{read \emph{var}}}
+Legge l'input da stdin e lo archivia nella variabile specificata
+(\texttt{var}). L'opzione \texttt{-p} evita la stampa dell'input,
+\texttt{-nN} accetta solo N caratteri in input, e \texttt{-p} stampa una
+stringa alla chiamata di \texttt{read}.
+\begin{verbatim}
+read -s -n1 -p "Premi un tasto..." keypress
+echo; echo "Il tasto premuto e` \"$keypress\"."
+\end{verbatim}
+
+\subsection{variabili}
+\subsubsection*{\texttt{declare}, \texttt{typeset}}
+Permettono di restringere le propriet\`a di una variabile, una forma debole di
+gestione dei tipi. L'opzione \texttt{-r} dichiara una variabile come
+read-only (come \texttt{readonly}, \texttt{-i} come intera, \texttt{-a} come
+array e \texttt{-x} esporta la variabile (come \texttt{export}).
+
+\subsubsection*{\texttt{let}}
+Esegue operazioni aritmetiche sulle variabili, in molti casi pu\`o funzionare
+come una versione semplificata di \texttt{expr}.
+\begin{verbatim}
+let a=11       # assegna ad a il valore 11
+let "a <<= 3"  # shift a sinistra di 3 posizioni
+let "a /= 4"   # a viene diviso per 4 e il risultato viene riassegnato
+let "a -= 5"   # sottrazione di 5 da a e riassegnamento
+\end{verbatim}
+
+\subsubsection*{\texttt{unset}}
+Cancella il contenuto di una variabile
+
+\subsection{Script execution}
+\subsubsection*{\texttt{source}}
+Conosciuto anche come \emph{dot command} (\texttt{.}). Esegue uno script senza
+aprire una subshell. Corrisponde alla direttiva \verb_#include_ del
+preprocessore C.
+\begin{verbatim}
+$ source ~/bash_profile
+$ . ~/bash_profile
+\end{verbatim}
+
+\subsection{Comandi vari}
+\subsubsection*{\texttt{true}, \texttt{false}}
+Ritornano sempre rispettivamente 0 e 1.
+
+\subsubsection*{\texttt{type $[$\emph{cmd}$]$}}
+Stampa un messaggio che indica se \texttt{cmd} \`e una keyword, un comando
+built-in oppure un comando esterno.
+
+\subsubsection*{\texttt{shopt $[$\emph{options}$]$}}
+Setta alcune opzioni della shell (ad esempio, \texttt{shopts -s cdspell}
+permette il mispelling in \texttt{cd}).
+
+\subsubsection*{\texttt{alias}, \texttt{unalias}}
+Un \emph{alias} \`e una scorciatoia per abbreviare lunghe sequenze di comandi:
+\begin{verbatim}
+alias dir="ls -l"
+alias rd="rm -r"
+unalias dir
+\end{verbatim}
+
+\subsubsection*{\texttt{history}}
+Visualizza l'elenco degli ultimi comandi eseguiti.
+
+\subsection{Directory stack}
+La shell Bash permette di manipolare una pila di directory con alcuni comandi
+utili per visite ad albero.
+
+\subsubsection*{\texttt{dirs}}
+Stampa il contenuto del directory stack.
+
+\subsubsection*{\texttt{pushd \emph{dirname}}}
+Esegue il push della directory \emph{dirname} nello stack; successivamente si
+sposta nella directory \emph{dirname} ed esegue \texttt{dirs}.
+
+\subsubsection*{\texttt{popd}}
+Esegue il pop dallo stack, si sposta sull'attuale top element ed esegue
+\texttt{dirs}.
+
+\subsubsection*{\texttt{\$DIRSTACK}}
+Contiene il top element dello stack.
+
+\section{File di configurazione}
+\subsection{Inizializzazione}
+La shell, all'avvio, fa il parsing di alcuni file di configurazione:
+
+\subsubsection*{/etc/profile}
+Settings sistem-wide validi per tutte le shell, non solo Bash.
+
+\subsubsection*{/etc/bashrc}
+Configurazione sistem-wide valida unicamente per Bash, contenente funzioni,
+alias e modelli di comportamento.
+
+\subsubsection*{\$HOME/.bash\_profile}
+Settings specifici per l'utente relativi a Bash (se Bash non trova questo
+file, cercher\`a il file \texttt{\$HOME/.profile}.
+
+\subsubsection*{\$HOME/.bashrc}
+Configurazione di Bash specifica per l'utente, contiene funzioni e alias.
+Viene letto solo se la shell \`e di tipo interattivo o in esecuzione di
+script.
+
+\subsection{Terminazione}
+\subsubsection*{\$HOME/.bash\_logout}
+Al logout, Bash esegue lo script contenuto in questo file.
+
+\section{Comandi esterni}
+

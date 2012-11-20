@@ -1,0 +1,62 @@
+\chapter{Introduzione}
+
+\section{Cos'\`e la shell di Linux}
+La shell di Linux costituisce l'interfaccia tra il sistema e l'utente umano.
+
+Consente di:
+\begin{itemize}
+	\item poter interagire con il sistema a svariati livelli
+	\item richiamare altri programmi
+	\item programmare degli script\footnote{gli script sono programmi in
+		formato testuale formati da sequenze di comandi, fondamentali
+		per ottimizzare e semplificare la vita all'amministratore del
+		sistema}
+\end{itemize}
+
+In ambiente Linux abbiamo a disposizione svariati tipi di shells: \emph{sh, ash,
+csh, bash, esh, lsh, kiss, pdksh, sash, psh, tcsh, zsh} tanto per citarne solo
+alcune. Alcune sono derivate (e potenziate) da altre\footnote{come \emph{bash} \`e
+una versione potenziata di \emph{sh}}, mentre altre differiscono in maniera
+notevole, sia nell'uso che nell'impostazione verso l'utente.
+
+Per la grande variet\`a presente, qui ci concentreremo sull'utilizzo di
+\emph{bash}, che \`e ormai lo standard "de facto" sui sistemi
+Linux\footnote{attenzione: NON Unix/BSD, per i quali lo standard \`e in genere
+\emph{csh} o una sua derivata}.
+
+\section{Prerequisiti}
+Lo shell scripting non \`e materia astrusa, ma nemmeno banale. Nel corso di
+queste pagine daremo per scontate alcune nozioni che riteniamo fondamentali
+per un utente Linux, su cui non ci soffermeremo per non appesantire il
+documento.
+In particolare daremo per scontata la conoscenza di:
+\begin{itemize}
+	\item nozioni di login/logout;
+	\item organizzazione del filesystem (file e directory, gerarchie,
+	pathname assoluti e relativi);
+	\item comandi di base:
+	\begin{itemize}
+		\item listare il contenuto di una directory (\texttt{ls});
+		\item maneggiare i file (\texttt{cp}, \texttt{mv}, \texttt{rm}, 
+			\texttt{mkdir}, \texttt{rmdir});
+		\item visualizzare il contenuto di un file
+		(\texttt{cat/more/less/head/tail});
+	\end{itemize}
+	\item attributi dei file (\texttt{read/write/execute})
+	\item conoscenza del significato di permesso (\texttt{chmod})
+	\item gestione dei gruppi e dei proprietari dei file (\texttt{chgrp/chown})
+\end{itemize}
+per cui, se non vi sentite sicuri di questi concetti, vi consigliamo di
+rivederli prima di avvicinarvi al bash scripting.
+
+\section{Note tipografiche}
+Per facilitare la lettura e la comprensione del testo, sono state utilizzate
+le seguenti convenzioni tipografiche:
+\begin{itemize}
+	\item lo stile {\ttfamily macchina da scrivere} \`e utilizzato per i
+		comandi, le variabili, le parole chiave e gli script;
+	\item in {\itshape corsivo} le definizioni di nuovi termini,
+		gli argomenti dei comandi e i nomi dei file;
+%	\item lo stile {\sffamily sans serif}
+\end{itemize}
+

@@ -1,0 +1,392 @@
+\chapter{Nozioni di base}
+
+\section{Caratteristiche della shell}
+Ogni shell (non solo bash) presenta una serie di caratteristiche, raggruppabili in macrocategorie:
+\begin{itemize}
+	\item comandi built-in;
+	\item metacaratteri;
+	\item redirezione di I/O;
+	\item command substitution;
+	\item sequenze condizionali e non;
+	\item raggruppamento di comandi;
+	\item esecuzione in background;
+	\item quoting;
+	\item subshell;
+	\item variabili (locali/d'ambiente);
+	\item scripting.
+\end{itemize}
+Passiamo a vederli in generale.
+
+\section{Comandi built-in}
+Quando richiedete l'esecuzione di un comando esterno, la shell si
+occupa di richiamare il corrispondente file eseguibile, caricarlo in memoria
+ed eseguirlo (ad esempio, quando chiamiamo il comando \texttt{ls},
+\textit{bash} si occupa di trovare e lanciare \texttt{/bin/ls}).
+
+Al contrario, quando richiedete un comando che possa essere riconosciuto ed
+eseguito direttamente dalla shell, fate uso di un comando \textit{interno},
+detto anche \textit{built-in}.\\
+Esempi:
+\begin{verbatim}
+  echo         # stampa tutti i suoi argomenti sullo standard output
+  cd           # cambia directory
+\end{verbatim}
+
+\section{Metacaratteri}
+La shell dispone di una serie di caratteri che non sono considerati nella loro
+forma a video, ma servono a specificare serie di funzionalit\`a interne alla
+shell. Per questo motivo quando volete digitare uno di tali caratteri dovete
+solitamente farne l'\textit{escape} con il carattere \textit{backslash}
+(``$\backslash$'').
+
+I metacaratteri possono essere trattati in maniera leggermente diversa a
+seconda della shell utilizzata, ma in generale sono questi\footnote{e
+\textit{bash} segue questo elenco}:
+\begin{itemize}
+	\item \texttt{>, >>, <\ \ \ \ \ \ \ \ } redirezione I/O
+	\item \texttt{|\ \ \ \ \ \ \ \ \ \ \ \ \ \ } pipe
+	\item \texttt{*, ?, [\ldots]\ \ \ \ } wildcards
+	\item \texttt{`command`\ \ \ \ \ \ } command substitution
+	\item \texttt{;\ \ \ \ \ \ \ \ \ \ \ \ \ \ } esecuzione sequenziale
+	\item \texttt{||, \&\&\ \ \ \ \ \ \ \ \ } esecuzione condizionale
+	\item \texttt{(\ldots)\ \ \ \ \ \ \ \ \ \ } raggruppamento comandi
+	\item \texttt{\&\ \ \ \ \ \ \ \ \ \ \ \ \ \ } esecuzione in background
+	\item \texttt{"", '{}'\ \ \ \ \ \ \ \ \ \ } quoting
+	\item \texttt{\#\ \ \ \ \ \ \ \ \ \ \ \ \ \ } commento
+	\item \texttt{\$\ \ \ \ \ \ \ \ \ \ \ \ \ \ } espansione di variabile
+	\item \texttt{$\backslash$\ \ \ \ \ \ \ \ \ \ \ \ \ \ } carattere di backslash
+	\item \texttt{<<\ \ \ \ \ \ \ \ \ \ \ \ \ \ } ``here documents''
+\end{itemize}
+
+\section{Redirezione I/O}
+Ogni processo \`e associato a tre ``stream'': lo \textit{standard input}
+(\texttt{stdin}), lo \textit{standard output} (\texttt{stdout}) e lo
+\textit{standard error} (\texttt{stderr}).
+
+La redirezione dell'I/O permette di associare questi stream a
+sorgenti/destinazioni\footnote{ovviamente nel caso di \texttt{stdin} avremo
+una sorgente, mentre per \texttt{stdout} e \texttt{stderr} avremo due
+destinazioni -- che \emph{possono} coincidere} diverse dalle loro attuali.
+Possiamo in questo modo salvare l'output di un processo in un file di testo,
+oppure possiamo salvare il suo log di errore, attraverso semplici comandi si
+questo tipo:
+\begin{verbatim}
+  ls > list.txt     # salva l'output di ls in un file list.txt
+  ls >> list.txt    # aggiunge l'output di ls in coda
+                    # al file list.txt
+  rm fileinutile >& /dev/null  # redireziona stdout e stderr
+                               # di rm su /dev/null
+\end{verbatim}
+Notate che, se non specificato, ``>'' ridirige lo \texttt{stdout}, e ``<'' lo
+\texttt{stdin}. ``>\&'' ridirige \emph{tutti} i flussi di output (quindi anche
+lo \texttt{stderr}). Notate anche il diverso significato di ``>'' e ``>>'': il
+primo se rediretto in un file lo tronca al suo inizio, cancellando il suo
+contenuto prima di scrivere il flusso, mentre il secondo conserva il contenuto
+del file e accoda ad esso il flusso.
+
+\addcontentsline{toc}{subsection}{Pipe, o catene di montaggio}
+\subsection*{Pipe, o catene di montaggio}
+Attraverso le pipe, potete utilizzare l'output di un processo come input di un
+altro processo:
+\begin{verbatim}
+$ ls
+  a.c b.c a.o b.o dir1 dir2
+$ ls | wc -w
+  6
+\end{verbatim}
+\texttt{wc} (un programma che conta parole, linee e molto altro) prende come
+\texttt{stdin} lo \texttt{stdout} di \texttt{ls}, ritornando il numero di
+parole listate da quest'ultimo: 6, appunto.
+
+\medskip
+Potrebbe sembrare una grossa limitazione poter unicamente ridirigere il
+flusso, e non poterlo duplicare: a questo supplisce il comando \texttt{tee}
+\footnote{il nome deriva dai ``giunti a T'', utilizzati dagli idraulici}
+che copia lo \texttt{stdin} sul file specificato E sullo \texttt{stdout}:
+\begin{verbatim}
+$ who | tee who_capture.txt | sort
+\end{verbatim}
+Se \texttt{tee} viene chiamato con l'opzione \texttt{-a}, viene fatto l'append
+al file argomento, invece del troncamento.
+
+\section{Wildcards}
+Le wildcards sono utilizzate per specificare pattern comprendenti pi\`u file:
+i file vengono passati in rassegna, e quelli che corrispondono\footnote{in
+gergo, ``\emph{to match}''} vengono restituiti. Vengono utlizzati pi\`u spesso
+delle \textit{regular expressions} per la loro semplicit\`a, ad ogni modo sono
+un sottoinsieme di queste ultime.
+\begin{itemize}
+	\item \texttt{*\ \ \ \ \ } match di qualsiasi stringa (anche vuota)
+	\item \texttt{?\ \ \ \ \ } match di qualsiasi carattere singolo
+	\item \texttt{[\ldots]\ } match di qualsiasi carattere inserito nelle
+		parentesi
+\end{itemize}
+Esempi:
+\begin{verbatim}
+$ ls *.c
+ prova001.c prova004.c prova125.c prov.c
+$ ls prova00?.c
+ prova001.c prova004.c
+$ ls prova[0-9][0-9][0-9].c
+ prova001.c prova004.c prova125.c
+\end{verbatim}
+
+\section{Command substitution}
+Si pu\`o sostituire ad un argomento un comando del tipo
+\texttt{`comando`}: il suo standard output verr\`a sostituito al comando
+stesso:
+\begin{verbatim}
+$ echo Data odierna: `date`
+$ echo Utenti collegati: `who | wc -l`
+$ tar czvf src-`date`.tar.gz src/
+\end{verbatim}
+
+\section{Sequenze}
+\addcontentsline{toc}{subsection}{Non condizionali}
+\subsection*{Non condizionali}
+Si possono eseguire sequenzialmente dei comandi utilizzando il metacarattere
+``;'':
+\begin{verbatim}
+$ date ; pwd ; ls
+\end{verbatim}
+
+\addcontentsline{toc}{subsection}{Condizionali}
+\subsection*{Condizionali}
+Le sequenze condizionali specificano la sequenza da eseguire in base
+all'\emph{exit code} del comando precedente all'interno della sequenza.
+
+``||'' viene utilizzato per eseguire il comando nel caso l'\emph{exit code}
+del precedente sia diverso da 0 (il che indica un fallimento).
+
+``\&\&'' invece esegue il comando se il precedente esce con un \emph{exit
+code} uguale a 0 (cio\`e esce con successo).
+
+Esempi:
+\begin{verbatim}
+$ gcc prova.c && ./a.out
+$ gcc prova.c || echo Compilazione fallita
+\end{verbatim}
+
+\section{Raggruppamento di comandi}
+\label{sec:sub:raggr}
+\`E possibile raggruppare dei comandi all'interno di ``('' e ``)'': verranno
+eseguiti in una subshell, e condivideranno gli stessi \texttt{stdin},
+\texttt{stdout} e \texttt{stderr}:
+\begin{verbatim}
+$ date ; ls ; pwd > out.txt
+$ (date ; ls ; pwd) > out.txt
+\end{verbatim}
+
+\section{Esecuzione in background}
+\label{sec:sub:backg}
+Se il comando lanciato da shell viene seguito dal metacarattere ``\&'', viene
+creata una subshell, il comando viene avviato in background e il controllo
+torna alla shell immediatamente, che prosegue l'esecuzione concorrentemente
+con il processo lanciato. Quest'ultimo abbandoner\`a la sorgente di
+\texttt{stdin} come tastiera (quindi non sar\`a possibile fornirgli input in
+tale modo), ritornadolo alla shell che vi permetter\`a di proseguire il
+lavoro; ovviamente \`e una funzionalit\`a molto utile se dovete eseguire
+attivit\`a lunghe che non necessitano il vostro input:
+\begin{verbatim}
+$ find / -name passwd -print &
+ [34256]
+$ /etc/passwd
+$ find / -name passwd -print &> results.txt &
+ [34263]
+$
+\end{verbatim}
+
+\section{Quoting}
+Esiste la possibilit\`a di disabilitare \emph{command substitution},
+\emph{wildcards} e \emph{variable substitution} (per non essere costretti a
+fare necessariamente l'escape di ogni carattere) attraverso il \emph{quoting}.
+
+Con gli apici singoli (\texttt{'{}'}) vengono inibiti \emph{wildcards},
+\emph{command substitution} e \emph{variable substitution}:
+\begin{verbatim}
+$ echo 3 * 4 = 12
+$ echo '3 * 4 = 12'
+\end{verbatim}
+
+Con i doppi apici (\texttt{""}), invece, vengono disabilitate le sole
+\emph{wildcards}:
+\begin{verbatim}
+$ export nome="mionome"
+$ echo "Il mio nome: $nome - la data: `date`"
+$ echo 'Il mio nome: $nome - la data: `date`'
+\end{verbatim}
+
+\section{Subshell}
+Quando aprite un terminale (ad esempio quando fate login) viene eseguita una
+\emph{shell}. Viene creata una \emph{child shell} (o \emph{subshell}) quando
+\begin{itemize}
+	\item usate il raggruppamento di comandi (vedi \ref{sec:sub:raggr})
+	\item eseguite un processo in background (vedi \ref{sec:sub:backg})
+	\item eseguite uno script
+\end{itemize}
+Le \emph{subshell} hanno la propria directory corrente, la propria area di
+variabili indipendenti dalla \emph{shell} madre (vedi \ref{sec:sub:var} per le
+variabili).
+
+\section{Variabili}
+\label{sec:sub:var}
+Le variabili supportate da qualsiasi shell sono di due tipi: \emph{globali} e
+\emph{locali}.
+
+Le variabili \emph{locali} non vengono passate da una shell alle altre
+subshell.
+
+Al contrario, le variabili \emph{globali} (chiamate anche variabili
+\emph{d'ambiente}) vengono passate da una shell alle subshell che essa crea, e
+vengono utilizzate per comunicazioni tra shell madre e figlie.
+
+Entrambi i tipi di variabile contengono dati di tipo \textit{stringa}. Ogni
+shell ha una serie di variabili d'ambiente che vengono inizializzate all'avvio
+della shell stessa (in genere attraverso i file \textit{/etc/profile},
+\textit{/home/nomeutente/.bash\_profile}, etc.), come:
+\begin{verbatim}
+$HOME, $PATH, $USER, $SHELL, $TERM, ...
+\end{verbatim}
+Un elenco completo delle variabili attualmente in uso si ottiene attraverso il
+comando \texttt{env}.
+
+Per accedere al contenuto di una variabile, si pu\`o utilizzare il comando \$;
+\$VARIABILE \`e la forma abbreviata di \$\{VARIABILE\} (a volte quest'ultima
+forma \`e necessaria):
+\begin{verbatim}
+$ echo $SHELL
+ /bin/bash
+\end{verbatim}
+
+Per assegnare un valore ad una variabile, nel caso si tratti di una variabile
+locale, basta il nome della variabile seguito dal valore\footnote{fate
+attenzione, perch\'e variabile e valore devono essere inframezzate da un segno
+di uguale (=), ma tra il segno e i caratteri \textbf{non ci devono essere
+spazi}}:
+\begin{verbatim}
+$ mionome=Ciro\ Mattia\ Gonano   # problemi con gli spazi
+$ mionome="Ciro Mattia Gonano"   # nessun problema ;)
+\end{verbatim}
+Per trasformare una variabile locale dichiarata in questo modo, utilizzare il
+comando \texttt{export}\footnote{\texttt{export} funziona solo se usate una
+shell di tipo \emph{bourne} (come \emph{bash}), mentre se utilizzate una
+\emph{c shell} (come \emph{csh}) dovete usare il comando \texttt{setenv}}:
+\begin{verbatim}
+$ mionome="Ciro Mattia Gonano"
+$ export mionome
+\end{verbatim}
+
+Un esempio pi\`u lungo per capire come funzionano le variabili locali e
+d'ambiente:
+\begin{verbatim}
+$ nome="Ciro Mattia"
+$ cognome="Gonano"
+$ echo $nome $cognome
+$ export nome
+$ bash
+$ echo $nome $cognome
+$ exit
+$ echo $nome $cognome
+\end{verbatim}
+
+\section{Scripting}
+Uno script \`e una sequenza di comandi che devono essere eseguiti (e,
+ovviamente, pu\`o contenere anche sequenze condizionali), memorizzata
+all'interno di un file di testo e poi richiamato dalla shell.
+Risulta molto utile per automatizzare procedure lunghe che ripetete
+frequentemente.
+
+Per scrivere uno script, \`e sufficiente scrivere la sequenza di comandi nel
+file di testo, renderlo eseguibile (con \texttt{chmod}), e
+lanciarlo\footnote{state attenti al PATH: se la directory corrente non \`e
+all'interno della vostra variabile \texttt{\$PATH}, dovrete lanciare qualcosa
+di simile a \texttt{./mioscript}}; la shell si occuper\`a di decidere la shell
+con cui eseguire lo script, di creare la subshell, e di passare il contenuto
+del file come \texttt{stdin} della subshell.
+
+La selezione della shell da usare per lo script \`e basata sulla prima riga
+dello stesso script:
+\begin{itemize}
+	\item se contiene solo un simbolo \texttt{\#}, verr\`a utilizzata la
+		shell corrente;
+	\item se contiene \texttt{\#!\textit{pathname}}, verr\`a utilizzata la
+		shell identificata da \textit{pathname}: per eseguire uno
+		script con la Korn shell scriveremo nella prima riga dello
+		script \texttt{\#!/bin/ksh}. Questa \`e la forma che vi
+		consiglio di utilizzare sempre, perch\'e risulta non ambigua e
+		non dipende dalla configurazione su cui lo script viene
+		lanciato.
+	\item se non contiene nessuno di questi due, viene interpretato da una
+		Bourne shell (\emph{bash}, \emph{sh}, etc.).
+\end{itemize}
+Alcuni comportamenti interessanti per farvi capire come viene eseguito uno
+script\footnote{eseguiteli senza paura, non causeranno danni al vostro
+sistema, se li eseguite da normale utente}...
+\begin{verbatim}
+#!/bin/cat
+#!/bin/rm
+\end{verbatim}
+
+Esistono alcune variabili \emph{built-in} studiate apposta per gli script (di
+seguito sono indicate se valgono per le Bourne shell (\textit{sh}), per le C
+shell (\textit{csh}) o per entrambe):
+\begin{itemize}
+	\item \texttt{\$\$\ \ \ \ \ \ } l'identificatore di processo della
+		shell (\textit{sh})
+	\item \texttt{\$0\ \ \ \ \ \ } il nome dello shell script
+		(\textit{sh,csh})
+	\item \texttt{\$1-\$9\ \ \ } l'n-esimo argomento della riga di comando
+		(\textit{sh,csh})
+	\item \texttt{\$\{n\}\ \ \ \ } l'n-esimo argomento della riga di
+		comando (\textit{sh,csh})
+	\item \texttt{\$*\ \ \ \ \ \ } lista di tutti gli argomenti della riga
+		di comando (\textit{sh,csh})
+	\item \texttt{\$\#\ \ \ \ \ \ } numero degli argomenti della riga di
+		comando (\textit{sh})
+	\item \texttt{\$?\ \ \ \ \ \ } valore di uscita dell'ultimo comando
+		eseguito (\textit{sh})
+\end{itemize}
+
+Un piccolo script per cominciare a capire...
+\begin{verbatim}
+#!/bin/bash
+a=23
+echo $a
+b=$a
+echo $b
+# Questo e` un commento!
+# Proviamo qualcosa di piu` eccitante!
+a=`echo Ciao mondo\!` # assegna il risultato di echo ad a
+echo $a
+a=`ls -l`  # adesso a e` uguale all'output
+           # di ls -l
+echo $a
+exit 0
+\end{verbatim}
+
+\section{Here document}
+L'ultimo metacarattere che ci rimane da vedere \`e il cosiddetto ``Here
+document'' (``\texttt{<<}''). I comandi
+\begin{verbatim}
+<comando> << <parola>
+
+<comando> <</ <parola>
+\end{verbatim}
+servono a copiare il proprio \texttt{stdin} fino alla linea che inizia con
+\texttt{<parola>} (esclusa), e quindi eseguire \texttt{<command>} utilizzando
+questi dati copiati come \texttt{stdin}.
+
+La versione con la \textit{slash} (``\texttt{<</}'') non esegue variable
+substitution.
+
+Esempio:
+\begin{verbatim}
+$ cat << ENDOFTEXT > nota
+> Ricordarsi di specificare che
+> con << le variabili vengono sostituite
+> e con <</ no.
+>                  $mionome
+> ENDOFTEXT
+$ 
+\end{verbatim}
+
